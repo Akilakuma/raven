@@ -7,12 +7,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
-
-const ChatId = -12345677
-
-var Bot *tgbotapi.BotAPI
 
 func main() {
 
@@ -21,53 +16,10 @@ func main() {
 
 	// 啟動gin
 	r := gin.New()
+	r.POST("api/test", test)
+	r.POST("api/photo-upload", photoUpload)
 	r.POST("api/file-upload", fileUpload)
 	r.Run(":8866")
-}
-
-func newBot() {
-	bot, err := tgbotapi.NewBotAPI("your telegram token")
-	if err != nil {
-		log.Panic(err)
-	}
-
-	bot.Debug = true
-	log.Printf("Authorized on account %s", bot.Self.UserName)
-
-	Bot = bot
-
-	// telegram bot receive msg
-	go recvMsg()
-}
-
-//  recvMsg log polling 方式持續看telegram bot 收到的訊息
-func recvMsg() {
-	u := tgbotapi.NewUpdate(0)
-	u.Timeout = 60
-
-	updates, _ := Bot.GetUpdatesChan(u)
-
-	for update := range updates {
-		if update.Message == nil { // ignore any non-Message Updates
-			continue
-		}
-
-		log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
-
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
-		//msg.ReplyToMessageID = update.Message.MessageID
-
-		Bot.Send(msg)
-	}
-}
-
-func sendFile(filename string) {
-	msg := tgbotapi.NewDocumentUpload(ChatId, filename)
-	_, err := Bot.Send(msg)
-
-	if err != nil {
-		log.Println("🐯 sendFile error", err)
-	}
 }
 
 func fileUpload(c *gin.Context) {
@@ -92,7 +44,11 @@ func fileUpload(c *gin.Context) {
 		log.Fatal(err)
 	}
 
-	c.String(http.StatusCreated, "upload successful \n")
+	c.String(http.StatusOK, "upload successful \n")
 
 	go sendFile("report.csv")
+}
+
+func photoUpload(c *gin.Context) {
+	sendPhoto("rv.jpeg")
 }
